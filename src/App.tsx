@@ -11,61 +11,36 @@ import { PlannerPage } from '@/pages/planner-page'
 import { AdminsPage } from '@/pages/admins-page'
 import { CustomersPage } from '@/pages/customers-page'
 import { ContractorsPage } from '@/pages/contractors-page'
+import { LoginPage } from '@/pages/login-page'
 
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* 👇 Публичные маршруты - без AppShell */}
+        <Route path="/login" element={<LoginPage />} />
+        
+        {/* 👇 Защищенные маршруты - с AppShell */}
         <Route element={<AppShell />}>
           <Route index element={<TicketsPage />} />
           <Route path="tickets/schedule" element={<SchedulePage />} />
-          {/* <Route path="tickets/schedule" element={<PlaceholderPage title="График" />} /> */}
           <Route path="tickets/marking" element={<PlaceholderPage title="Маркировка" />} />
-          {/* <Route path="tickets/planner" element={<PlaceholderPage title="Планировщик работ" />} /> */}
           <Route path="tickets/planner" element={<PlannerPage />} />
           <Route path="tickets/:id" element={<TicketDetailPage />} />
           
-          {/* TODO */}
-          {/* <Route
-            path="objects"
-            element={<ObjectsPage/>}
-          /> */}
-
-                {/* Маршруты для объектов - ВАЖЕН ПОРЯДОК! */}
           <Route path="objects" element={<ObjectsPage />} />
           <Route path="objects/:id" element={<ObjectDetailPage />} />
-
           
-          {/* <Route
-            path="users"
-            element={<PlaceholderPage title="Пользователи" />}
-          /> */}
           <Route path="users/admins" element={<AdminsPage />} />
           <Route path="users/customers" element={<CustomersPage />} />
           <Route path="users/contractors" element={<ContractorsPage />} />
           
-
-          {/* <Route path="users/admins" element={<PlaceholderPage title="Администраторы" />} />
-          <Route path="users/customers" element={<PlaceholderPage title="Заказчики" />} />
-          <Route path="users/contractors" element={<PlaceholderPage title="Исполнители" />} /> */}
+          <Route path="companies" element={<PlaceholderPage title="Компании" />} />
+          <Route path="messages" element={<PlaceholderPage title="Сообщения" />} />
+          <Route path="checklists" element={<PlaceholderPage title="Чек-листы" />} />
+          <Route path="warehouses" element={<PlaceholderPage title="Склады | Материалы" />} />
           
-          <Route
-            path="companies"
-            element={<PlaceholderPage title="Компании" />}
-          />
-          <Route
-            path="messages"
-            element={<PlaceholderPage title="Сообщения" />}
-          />
-          <Route
-            path="checklists"
-            element={<PlaceholderPage title="Чек-листы" />}
-          />
-          <Route
-            path="warehouses"
-            element={<PlaceholderPage title="Склады | Материалы" />}
-          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

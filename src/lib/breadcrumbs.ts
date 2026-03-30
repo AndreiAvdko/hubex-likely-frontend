@@ -15,7 +15,7 @@ const labels: Record<string, string> = {
 }
 
 /** Заглушка «тенанта» — позже можно брать из API/контекста */
-const tenantName = 'Компани'
+const tenantName = 'Компании'
 
 export function getHeaderBreadcrumb(pathname: string): string {
   const ticketMatch = /^\/tickets\/([^/]+)$/.exec(pathname)
