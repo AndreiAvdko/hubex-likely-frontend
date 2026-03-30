@@ -80,7 +80,7 @@ export function LoginPage() {
             <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">
-            HubexLike
+            Screw It Desk
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Единая платформа для управления заявками, объектами и исполнителями

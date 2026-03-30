@@ -144,10 +144,10 @@ export function AppSidebar() {
           {(!collapsed || isMobile) && (
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
-                H
+                SI
               </div>
               <span className="truncate text-sm font-semibold tracking-tight">
-                HubexLike
+                Screw It Desk
               </span>
             </div>
           )}
