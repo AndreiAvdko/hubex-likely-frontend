@@ -1,156 +1,139 @@
-// src/lib/api/services/user-service.ts
+// src/lib/api/services/user.service.ts
 import { apiClient } from '../client'
+import { API_ENDPOINTS } from '../endpoints'
 import { UserAdapter } from '../adapters/user-adapter'
 import type { 
-  AdminListItem, 
-  UserFilters, 
+  // UserListItem,
+  AdminUser,
+  // CustomerUser,
+  // ContractorUser,
   PaginationParams, 
   PaginatedResponse,
-  CreateUserRequest,
-  UpdateUserRequest
+  // CreateUserRequest,
+  // UpdateUserRequest
 } from '../types/users-types/types'
 
-// Определяем тип ответа API
-interface ApiResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
-
 class UserService {
-  private readonly baseUrl = '/users'
-
   /**
    * Получение списка администраторов
    */
-  async getAdmins(
-    filters?: Omit<UserFilters, 'role'>,
-    pagination?: PaginationParams
-  ): Promise<PaginatedResponse<AdminListItem>> {
+  async getAdmins(pagination?: PaginationParams): Promise<PaginatedResponse<AdminUser>> {
     const params = new URLSearchParams()
-    
-    // Всегда фильтруем по роли admin
-    params.append('role', 'admin')
     
     if (pagination?.page) params.append('page', String(pagination.page))
     if (pagination?.limit) params.append('limit', String(pagination.limit))
     if (pagination?.sort) params.append('sort', pagination.sort)
-    if (filters?.status && filters.status !== 'all') params.append('status', filters.status)
-    if (filters?.search) params.append('search', filters.search)
     
-    // Получаем ответ от apiClient
-    const response = await apiClient.get(`${this.baseUrl}?${params.toString()}`)
-    
-    console.log('Ответ от apiClient:', response)
-    
-    // Проверяем структуру ответа как ApiResponse
-    if (this.isApiResponse(response)) {
-      return {
-        data: response.data.map((item) => UserAdapter.toAdminListItem(item as Record<string, unknown>)),
-        pagination: response.pagination,
-      }
-    }
-    
-    // Если apiClient возвращает массив напрямую
-    if (Array.isArray(response)) {
-      return {
-        data: response.map((item) => UserAdapter.toAdminListItem(item as Record<string, unknown>)),
-        pagination: { page: 1, limit: 20, total: response.length, pages: 1 },
-      }
-    }
-    
-    // Если структура другая - возвращаем пустой результат
-    console.error('Неизвестная структура ответа:', response)
-    return {
-      data: [],
-      pagination: { page: 1, limit: 20, total: 0, pages: 0 },
-    }
-  }
-
-  /**
-   * Получение списка пользователей с фильтрацией по роли
-   */
-  async getUsersByRole(
-    role: 'admin' | 'customer' | 'contractor',
-    filters?: Omit<UserFilters, 'role'>,
-    pagination?: PaginationParams
-  ): Promise<PaginatedResponse<AdminListItem>> {
-    const params = new URLSearchParams()
-    
-    params.append('role', role)
-    
-    if (pagination?.page) params.append('page', String(pagination.page))
-    if (pagination?.limit) params.append('limit', String(pagination.limit))
-    if (pagination?.sort) params.append('sort', pagination.sort)
-    if (filters?.status && filters.status !== 'all') params.append('status', filters.status)
-    if (filters?.search) params.append('search', filters.search)
-    
-    const response = await apiClient.get(`${this.baseUrl}?${params.toString()}`)
-    
-    console.log('Ответ от apiClient (getUsersByRole):', response)
-    
-    if (this.isApiResponse(response)) {
-      return {
-        data: response.data.map((item) => UserAdapter.toAdminListItem(item as Record<string, unknown>)),
-        pagination: response.pagination,
-      }
-    }
-    
-    if (Array.isArray(response)) {
-      return {
-        data: response.map((item) => UserAdapter.toAdminListItem(item as Record<string, unknown>)),
-        pagination: { page: 1, limit: 20, total: response.length, pages: 1 },
-      }
-    }
-    
-    return {
-      data: [],
-      pagination: { page: 1, limit: 20, total: 0, pages: 0 },
-    }
-  }
-
-  /**
-   * Создание администратора
-   */
-  async createAdmin(data: CreateUserRequest): Promise<AdminListItem> {
-    const response = await apiClient.post(this.baseUrl, {
-      ...data,
-      role: 'admin'
-    })
-    return UserAdapter.toAdminListItem(response as Record<string, unknown>)
-  }
-
-  /**
-   * Обновление администратора
-   */
-  async updateAdmin(id: string, data: UpdateUserRequest): Promise<AdminListItem> {
-    const response = await apiClient.patch(`${this.baseUrl}/${id}`, data)
-    return UserAdapter.toAdminListItem(response as Record<string, unknown>)
-  }
-
-  /**
-   * Удаление администратора
-   */
-  async deleteAdmin(id: string): Promise<void> {
-    await apiClient.delete(`${this.baseUrl}/${id}`)
-  }
-
-  /**
-   * Type guard для проверки структуры ApiResponse
-   */
-  private isApiResponse(response: unknown): response is ApiResponse<unknown> {
-    return (
-      typeof response === 'object' &&
-      response !== null &&
-      'data' in response &&
-      Array.isArray((response as ApiResponse<unknown>).data) &&
-      'pagination' in response &&
-      typeof (response as ApiResponse<unknown>).pagination === 'object'
+    const response = await apiClient.get<{ data: unknown[]; pagination: unknown }>(
+      `${API_ENDPOINTS.users.admins}?${params.toString()}`
     )
+    
+    return {
+      data: response.data.map((item) => UserAdapter.toAdminUser(item as Record<string, unknown>)),
+      pagination: response.pagination as PaginatedResponse<AdminUser>['pagination'],
+    }
+  }
+
+  /**
+   * Получение списка заказчиков
+   */
+  // async getCustomers(pagination?: PaginationParams): Promise<PaginatedResponse<CustomerUser>> {
+  //   const params = new URLSearchParams()
+    
+  //   if (pagination?.page) params.append('page', String(pagination.page))
+  //   if (pagination?.limit) params.append('limit', String(pagination.limit))
+  //   if (pagination?.sort) params.append('sort', pagination.sort)
+    
+  //   const response = await apiClient.get<{ data: unknown[]; pagination: unknown }>(
+  //     `${API_ENDPOINTS.users.customers}?${params.toString()}`
+  //   )
+    
+  //   return {
+  //     data: response.data.map((item) => UserAdapter.toCustomerUser(item as Record<string, unknown>)),
+  //     pagination: response.pagination as PaginatedResponse<CustomerUser>['pagination'],
+  //   }
+  // }
+
+  /**
+   * Получение списка исполнителей
+   */
+  // async getContractors(pagination?: PaginationParams): Promise<PaginatedResponse<ContractorUser>> {
+  //   const params = new URLSearchParams()
+    
+  //   if (pagination?.page) params.append('page', String(pagination.page))
+  //   if (pagination?.limit) params.append('limit', String(pagination.limit))
+  //   if (pagination?.sort) params.append('sort', pagination.sort)
+    
+  //   const response = await apiClient.get<{ data: unknown[]; pagination: unknown }>(
+  //     `${API_ENDPOINTS.users.contractors}?${params.toString()}`
+  //   )
+    
+  //   return {
+  //     data: response.data.map((item) => UserAdapter.toContractorUser(item as Record<string, unknown>)),
+  //     pagination: response.pagination as PaginatedResponse<ContractorUser>['pagination'],
+  //   }
+  // }
+
+  /**
+   * Получение пользователя по ID
+   */
+  // async getUserById(id: string): Promise<UserListItem> {
+  //   const response = await apiClient.get<Record<string, unknown>>(API_ENDPOINTS.users.byId(id))
+  //   return UserAdapter.toUserListItem(response)
+  // }
+
+  /**
+   * Создание пользователя (админ)
+   */
+  // async createUser(data: CreateUserRequest): Promise<UserListItem> {
+  //   const response = await apiClient.post<Record<string, unknown>>(API_ENDPOINTS.users.base, data)
+  //   return UserAdapter.toUserListItem(response)
+  // }
+
+  /**
+   * Обновление пользователя
+   */
+  // async updateUser(id: string, data: UpdateUserRequest): Promise<UserListItem> {
+  //   const response = await apiClient.patch<Record<string, unknown>>(API_ENDPOINTS.users.byId(id), data)
+  //   return UserAdapter.toUserListItem(response)
+  // }
+
+  /**
+   * Удаление пользователя
+   */
+  async deleteUser(id: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.users.byId(id))
+  }
+
+  /**
+   * Восстановление пользователя
+   */
+  // async restoreUser(id: string): Promise<UserListItem> {
+  //   const response = await apiClient.post<Record<string, unknown>>(API_ENDPOINTS.users.restore(id))
+  //   return UserAdapter.toUserListItem(response)
+  // }
+
+  /**
+   * Получение своего профиля
+   */
+  // async getProfile(): Promise<UserListItem> {
+  //   const response = await apiClient.get<Record<string, unknown>>(API_ENDPOINTS.profile.base)
+  //   return UserAdapter.toUserListItem(response)
+  // }
+
+  /**
+   * Обновление своего профиля
+   */
+  // async updateProfile(data: UpdateUserRequest): Promise<UserListItem> {
+  //   const response = await apiClient.patch<Record<string, unknown>>(API_ENDPOINTS.profile.base, data)
+  //   return UserAdapter.toUserListItem(response)
+  // }
+
+  /**
+   * Смена пароля
+   */
+  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.profile.changePassword, data)
   }
 }
 

@@ -1,55 +1,27 @@
 // src/hooks/useAdmins.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@/lib/api/services/user-services'
-import type { UserFilters, PaginationParams } from '@/lib/api/types/users-types/types'
+import type { PaginationParams } from '@/lib/api/types/users-types'
 
 // Ключи кэша для администраторов
 export const adminKeys = {
   all: ['admins'] as const,
   lists: () => [...adminKeys.all, 'list'] as const,
-  list: (filters: UserFilters, pagination: PaginationParams) => 
-    [...adminKeys.lists(), filters, pagination] as const,
+  list: (pagination: PaginationParams) => [...adminKeys.lists(), pagination] as const,
   detail: (id: string) => [...adminKeys.all, 'detail', id] as const,
 }
 
 /**
- * Хук для получения списка администраторов
+ * Хук для получения списка администраторов с пагинацией
+ * @param pagination - параметры пагинации (page, limit, sort)
  */
-export function useAdmins(filters: UserFilters = {}, pagination: PaginationParams = {}) {
+export function useAdmins(pagination: PaginationParams = {}) {
   return useQuery({
-    queryKey: adminKeys.list(filters, pagination),
-    queryFn: () => userService.getAdmins(filters, pagination),
-    staleTime: 5 * 60 * 1000, // 5 минут
-  })
-}
-
-/**
- * Хук для создания администратора
- */
-export function useCreateAdmin() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: userService.createAdmin,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.lists() })
-    },
-  })
-}
-
-/**
- * Хук для обновления администратора
- */
-export function useUpdateAdmin() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof userService.updateAdmin>[1] }) =>
-      userService.updateAdmin(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.detail(id) })
-      queryClient.invalidateQueries({ queryKey: adminKeys.lists() })
-    },
+    queryKey: adminKeys.list(pagination),
+    queryFn: () => userService.getAdmins(pagination),
+    staleTime: 5 * 60 * 1000,
+    // keepPreviousData позволяет сохранять предыдущие данные при загрузке новой страницы
+    placeholderData: (previousData) => previousData,
   })
 }
 
@@ -60,8 +32,9 @@ export function useDeleteAdmin() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: userService.deleteAdmin,
+    mutationFn: userService.deleteUser,
     onSuccess: () => {
+      // Инвалидируем все списки администраторов
       queryClient.invalidateQueries({ queryKey: adminKeys.lists() })
     },
   })

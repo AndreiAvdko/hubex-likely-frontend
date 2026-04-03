@@ -1,4 +1,4 @@
-// src/lib/api/types.ts
+// src/lib/api/types/users-types/types.ts
 export interface BaseUser {
   id: string
   email: string
@@ -9,7 +9,7 @@ export interface BaseUser {
   role: 'admin' | 'customer' | 'contractor'
   status: 'active' | 'inactive' | 'blocked' | 'pending'
   
-  
+  // Не нужно в BaseUser часть полей будет использоваться как дополнительные в дочерних: AdminUser, CustomerUser, ContractorUser
   // rating?: number | null
   // completedTickets?: number | null
   // activeTickets?: number | null
