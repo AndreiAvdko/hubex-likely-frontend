@@ -1,5 +1,5 @@
 // src/lib/api/adapters/user.adapter.ts
-import type { BaseUser, AdminUser, AdminListItem } from '../types/users-types/types'
+import type { BaseUser, AdminUser, AdminListItem } from '../../types/users-types/types'
 
 export class UserAdapter {
   /**
@@ -31,6 +31,8 @@ export class UserAdapter {
       phone: this.getNullableString(raw, 'phone'),
       role: this.getEnum(raw, 'role', ['admin', 'customer', 'contractor'], 'customer'),
       status: this.getEnum(raw, 'status', ['active', 'inactive', 'blocked', 'pending'], 'pending'),
+
+      
       // rating: this.getNullableNumber(raw, 'rating'),
       // completedTickets: this.getNullableNumber(raw, 'completedTickets'),
       // activeTickets: this.getNullableNumber(raw, 'activeTickets'),

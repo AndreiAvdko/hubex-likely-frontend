@@ -1,3 +1,4 @@
+// src/components/layout/app-sidebar.tsx
 import {
   Building2,
   ChevronLeft,
@@ -20,15 +21,16 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useUserRole } from '@/hooks/useUserRole'
 
 const ticketSubItems = [
   { to: '/', label: 'Все заявки', end: true },
-  { to: '/tickets/schedule', label: 'Графики работы', end: false },
+  { to: '/tickets/schedule', label: 'График', end: false },
   { to: '/tickets/marking', label: 'Маркировка', end: false },
-  { to: '/tickets/planner', label: 'Планирование работ', end: false },
+  { to: '/tickets/planner', label: 'Планировщик работ', end: false },
 ] as const
 
-// Подпункты для пользователей
+// Подпункты для пользователей (только для админов)
 const userSubItems = [
   { to: '/users/admins', label: 'Администратор', end: false },
   { to: '/users/customers', label: 'Заказчики', end: false },
@@ -37,13 +39,14 @@ const userSubItems = [
 
 const mainNav = [
   { to: '/objects', label: 'Объекты | Оборудование', icon: Factory },
-  { to: '/companies', label: 'Компании', icon: Building2 },
   { to: '/messages', label: 'Сообщения', icon: MessageSquare },
+  { to: '/companies', label: 'Компании', icon: Building2 },
   { to: '/checklists', label: 'Чек-листы', icon: ClipboardList },
   { to: '/warehouses', label: 'Склады | Материалы', icon: Package },
 ] as const
 
 export function AppSidebar() {
+  const { role, isAdmin, isCustomer, isContractor } = useUserRole()
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -120,11 +123,7 @@ export function AppSidebar() {
       <aside
         className={cn(
           'flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-out',
-          // Фиксированное позиционирование для десктопа
-          !isMobile && 'fixed left-0 top-0 h-screen',
-          // Десктопная ширина
           !isMobile && (collapsed ? 'w-[4.25rem]' : 'w-60'),
-          // Мобильная версия
           isMobile && mobileMenuOpen
             ? 'fixed left-0 top-0 z-50 h-full w-64'
             : isMobile && !mobileMenuOpen
@@ -246,68 +245,77 @@ export function AppSidebar() {
               </div>
             )}
 
-            {(!collapsed || isMobile) && <Separator className="my-2 bg-sidebar-border" />}
-
-            {/* Раздел Пользователи */}
-            {(!collapsed || isMobile) && (
-              <button
-                onClick={() => toggleSection('users')}
-                className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground/90 hover:bg-sidebar-accent/50"
-              >
-                <div className="flex items-center gap-2">
-                  <Users className="size-4 shrink-0" aria-hidden />
-                  <span>Пользователи</span>
-                </div>
-                {expandedSections.users ? (
-                  <ChevronUp className="size-4" />
-                ) : (
-                  <ChevronDown className="size-4" />
+            {/* Раздел Пользователи - показываем только админам */}
+            {isAdmin && (
+              <>
+                {(!collapsed || isMobile) && <Separator className="my-2 bg-sidebar-border" />}
+                
+                {(!collapsed || isMobile) && (
+                  <button
+                    onClick={() => toggleSection('users')}
+                    className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground/90 hover:bg-sidebar-accent/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users className="size-4 shrink-0" aria-hidden />
+                      <span>Пользователи</span>
+                    </div>
+                    {expandedSections.users ? (
+                      <ChevronUp className="size-4" />
+                    ) : (
+                      <ChevronDown className="size-4" />
+                    )}
+                  </button>
                 )}
-              </button>
-            )}
-            {(collapsed && !isMobile) && (
-              <NavLink
-                to="/users/admins"
-                title="Пользователи"
-                className={({ isActive }) =>
-                  cn(
-                    'flex size-10 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  )
-                }
-              >
-                <Users className="size-5" />
-              </NavLink>
-            )}
-            {(!collapsed || isMobile) && expandedSections.users && (
-              <div className="flex flex-col gap-0.5 pl-2">
-                {userSubItems.map((item) => (
+                {(collapsed && !isMobile) && (
                   <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    onClick={isMobile ? closeMobileMenu : undefined}
+                    to="/users/admins"
+                    title="Пользователи"
                     className={({ isActive }) =>
                       cn(
-                        'rounded-md border-l-2 py-1.5 pr-2 pl-6 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                        'flex size-10 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
                         isActive
-                          ? 'border-sidebar-primary bg-sidebar-accent/80 font-medium text-sidebar-accent-foreground'
-                          : 'border-transparent text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                       )
                     }
                   >
-                    {item.label}
+                    <Users className="size-5" />
                   </NavLink>
-                ))}
-              </div>
+                )}
+                {(!collapsed || isMobile) && expandedSections.users && (
+                  <div className="flex flex-col gap-0.5 pl-2">
+                    {userSubItems.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
+                        onClick={isMobile ? closeMobileMenu : undefined}
+                        className={({ isActive }) =>
+                          cn(
+                            'rounded-md border-l-2 py-1.5 pr-2 pl-6 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                            isActive
+                              ? 'border-sidebar-primary bg-sidebar-accent/80 font-medium text-sidebar-accent-foreground'
+                              : 'border-transparent text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                          )
+                        }
+                      >
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {(!collapsed || isMobile) && <Separator className="my-2 bg-sidebar-border" />}
 
-            {/* Основные пункты меню */}
+            {/* Основные пункты меню - показываем в зависимости от роли */}
             {mainNav.map((item) => {
+              // Для заказчиков и исполнителей показываем только Objects и Messages
+              if ((isCustomer || isContractor) && item.to !== '/objects' && item.to !== '/messages') {
+                return null
+              }
+              
               const Icon = item.icon
               return (
                 <NavLink
@@ -333,16 +341,6 @@ export function AppSidebar() {
           </nav>
         </ScrollArea>
       </aside>
-
-      {/* Отступ для основного контента на десктопе, чтобы он не перекрывался сайдбаром */}
-      {!isMobile && (
-        <div
-          className={cn(
-            'transition-all duration-300 ease-out',
-            collapsed ? 'ml-[4.25rem]' : 'ml-60'
-          )}
-        />
-      )}
     </>
   )
 }

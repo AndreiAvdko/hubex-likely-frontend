@@ -1,9 +1,8 @@
 // src/hooks/useAdmins.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { userService } from '@/lib/api/services/user-services'
-import type { PaginationParams } from '@/lib/api/types/users-types'
+import { adminService } from '@/lib/api/services/user-services/admin-service'
+import type { PaginationParams } from '@/lib/api/types/users-types/types'
 
-// Ключи кэша для администраторов
 export const adminKeys = {
   all: ['admins'] as const,
   lists: () => [...adminKeys.all, 'list'] as const,
@@ -12,30 +11,54 @@ export const adminKeys = {
 }
 
 /**
- * Хук для получения списка администраторов с пагинацией
- * @param pagination - параметры пагинации (page, limit, sort)
+ * Хук для получения списка администраторов (только для админов)
  */
 export function useAdmins(pagination: PaginationParams = {}) {
   return useQuery({
     queryKey: adminKeys.list(pagination),
-    queryFn: () => userService.getAdmins(pagination),
+    queryFn: () => adminService.getAdmins(pagination),
     staleTime: 5 * 60 * 1000,
-    // keepPreviousData позволяет сохранять предыдущие данные при загрузке новой страницы
     placeholderData: (previousData) => previousData,
+    // Доступно только для админов
+    enabled: () => {
+      const userRole = localStorage.getItem('userRole')
+      return userRole === 'admin'
+    },
   })
 }
 
 /**
- * Хук для удаления администратора
+ * Хук для удаления пользователя (только для админов)
  */
-export function useDeleteAdmin() {
+export function useDeleteUser() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: userService.deleteUser,
+    mutationFn: (id: string) => adminService.deleteUser(id),
     onSuccess: () => {
-      // Инвалидируем все списки администраторов
-      queryClient.invalidateQueries({ queryKey: adminKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: ['admins'] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: ['contractors'] })
     },
   })
 }
+
+/**
+ * Хук для создания пользователя (только для админов)
+ */
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: adminService.createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admins'] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: ['contractors'] })
+    },
+  })
+}
+
+// Алиасы для удобства
+export const useDeleteAdmin = useDeleteUser
+export const useCreateAdmin = useCreateUser

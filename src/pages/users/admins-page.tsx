@@ -30,7 +30,7 @@ const statusLabels: Record<string, string> = {
   pending: 'Ожидает',
 }
 
-// Компонент карточки администратора (единый для всех устройств)
+// Компонент карточки администратора
 const AdminCard = ({ admin, onDelete }: { admin: any; onDelete: (id: string) => void }) => {
   const getFullName = (admin: { firstName?: string | null; lastName?: string | null; username: string }) => {
     if (admin.firstName || admin.lastName) {
@@ -84,7 +84,6 @@ const AdminCard = ({ admin, onDelete }: { admin: any; onDelete: (id: string) => 
             </div>
           </div>
           
-          {/* Меню с тремя точками - всегда справа */}
           <DropdownMenu>
             <DropdownMenuTrigger>
               <Button variant="ghost" size="icon-sm" className="shrink-0 ml-2">
@@ -119,7 +118,8 @@ export function AdminsPage() {
     sort: 'createdAt:desc',
   })
 
-  const { data, isLoading, isFetching } = useAdmins({}, pagination)
+  // Исправлено: передаем только один аргумент - pagination
+  const { data, isLoading, isFetching } = useAdmins(pagination)
   const deleteAdmin = useDeleteAdmin()
 
   const handleRefresh = () => {
@@ -132,34 +132,72 @@ export function AdminsPage() {
     }
   }
 
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   // Компонент пагинации
   const PaginationComponent = () => {
     if (!data?.pagination || data.pagination.pages <= 1) return null
     
+    const { page, pages, total, limit } = data.pagination
+    const startItem = (page - 1) * limit + 1
+    const endItem = Math.min(page * limit, total)
+    
     return (
       <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
         <div className="text-sm text-muted-foreground order-2 sm:order-1">
-          Показано {data.data.length} из {data.pagination.total} администраторов
+          Показано {startItem} - {endItem} из {total} администраторов
         </div>
         <div className="flex items-center gap-2 order-1 sm:order-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page! - 1 }))}
-            disabled={pagination.page === 1}
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
             className="gap-1"
           >
             <ChevronLeft className="size-4" />
             <span className="hidden sm:inline">Назад</span>
           </Button>
-          <span className="text-sm">
-            {pagination.page} / {data.pagination.pages}
+          
+          <div className="hidden sm:flex items-center gap-1">
+            {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+              let pageNum: number
+              if (pages <= 5) {
+                pageNum = i + 1
+              } else if (page <= 3) {
+                pageNum = i + 1
+              } else if (page >= pages - 2) {
+                pageNum = pages - 4 + i
+              } else {
+                pageNum = page - 2 + i
+              }
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === page ? 'default' : 'outline'}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => handlePageChange(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              )
+            })}
+          </div>
+          
+          <span className="text-sm sm:hidden">
+            {page} / {pages}
           </span>
+          
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page! + 1 }))}
-            disabled={pagination.page === data.pagination.pages}
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === pages}
             className="gap-1"
           >
             <span className="hidden sm:inline">Вперед</span>
@@ -227,7 +265,6 @@ export function AdminsPage() {
       {/* Список карточек */}
       <div className="flex-1 p-4 sm:p-6">
         {isLoading ? (
-          // Скелетон загрузки
           <>
             <SkeletonCard />
             <SkeletonCard />
@@ -249,7 +286,6 @@ export function AdminsPage() {
           ))
         )}
 
-        {/* Пагинация */}
         <PaginationComponent />
       </div>
     </div>

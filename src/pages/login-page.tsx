@@ -1,16 +1,64 @@
 // src/pages/login-page.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, LogIn, Building2 } from 'lucide-react'
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  LogIn, 
+  Building2, 
+  Users, 
+  Shield, 
+  HardHat,
+  ChevronUp,
+  ChevronDown
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import { useAuth } from '@/context/AuthContexts'
+import { USE_MOCK_AUTH } from '@/lib/api/services/auth-services.ts/auth-service'
 import { cn } from '@/lib/utils'
+
+// Тестовые аккаунты
+const testAccounts = [
+  {
+    role: 'admin',
+    name: 'Администратор',
+    email: 'admin@screwit.ru',
+    password: 'admin123',
+    icon: Shield,
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300',
+    description: 'Полный доступ к системе',
+  },
+  {
+    role: 'customer',
+    name: 'Заказчик',
+    email: 'customer@screwit.ru',
+    password: 'customer123',
+    icon: Users,
+    color: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+    description: 'Доступ к своим заявкам и объектам',
+  },
+  {
+    role: 'contractor',
+    name: 'Исполнитель',
+    email: 'contractor@screwit.ru',
+    password: 'contractor123',
+    icon: HardHat,
+    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+    description: 'Выполнение заявок и отчетность',
+  },
+]
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { login, isLoading: authLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [showTestUsers, setShowTestUsers] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -25,9 +73,24 @@ export function LoginPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    // Очищаем ошибку при вводе
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const handleQuickLogin = async (email: string, password: string) => {
+    setFormData({ email, password, rememberMe: false })
+    setIsLoading(true)
+    try {
+      await login(email, password)
+      navigate('/')
+    } catch (error) {
+      setErrors({
+        email: '',
+        password: 'Неверный email или пароль'
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -46,9 +109,6 @@ export function LoginPage() {
     if (!formData.password) {
       newErrors.password = 'Введите пароль'
       isValid = false
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Пароль должен содержать минимум 6 символов'
-      isValid = false
     }
 
     setErrors(newErrors)
@@ -62,17 +122,29 @@ export function LoginPage() {
     
     setIsLoading(true)
     
-    // Имитация запроса к API
-    setTimeout(() => {
-      setIsLoading(false)
-      // Здесь будет реальная авторизация
-      // После успешного входа перенаправляем на главную
+    try {
+      await login(formData.email, formData.password)
       navigate('/')
-    }, 1500)
+    } catch (error) {
+      setErrors({
+        email: '',
+        password: 'Неверный email или пароль'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Иконка и описание системы */}
         <div className="mb-8 text-center">
@@ -83,13 +155,12 @@ export function LoginPage() {
             Screw It Desk
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Единая платформа организации для управления заявками, объектами и исполнителями
+            Единая платформа для управления заявками, объектами и исполнителями
           </p>
         </div>
 
         {/* Карточка с формой входа */}
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8">
-          {/* Заголовок формы */}
           <div className="mb-6 text-center">
             <h2 className="text-xl font-semibold text-foreground">
               Добро пожаловать
@@ -99,9 +170,7 @@ export function LoginPage() {
             </p>
           </div>
 
-          {/* Форма входа */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email
@@ -127,7 +196,6 @@ export function LoginPage() {
               )}
             </div>
 
-            {/* Пароль */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">
                 Пароль
@@ -164,7 +232,6 @@ export function LoginPage() {
               )}
             </div>
 
-            {/* Запомнить меня и Забыли пароль */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -190,7 +257,6 @@ export function LoginPage() {
               </button>
             </div>
 
-            {/* Кнопка входа */}
             <Button
               type="submit"
               className="w-full"
@@ -230,17 +296,78 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {/* Ссылка на регистрацию */}
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Нет аккаунта?{' '}
-            <button
-              type="button"
-              className="font-medium text-primary hover:text-primary/80 transition-colors"
-              onClick={() => navigate('/register')}
-            >
-              Оставьте заявку
-            </button>
-          </p>
+          {/* Тоггл для показа тестовых пользователей (только в режиме моков) */}
+          {USE_MOCK_AUTH && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    или
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Показать тестовых пользователей
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {showTestUsers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </span>
+                  <Switch
+                    checked={showTestUsers}
+                    onCheckedChange={setShowTestUsers}
+                  />
+                </div>
+              </div>
+
+              {/* Тестовые пользователи (появляются при включенном тоггле) */}
+              {showTestUsers && (
+                <div className="mt-4 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Нажмите на карточку для автоматического входа
+                  </p>
+                  {testAccounts.map((account) => {
+                    const Icon = account.icon
+                    return (
+                      <div
+                        key={account.role}
+                        className="cursor-pointer rounded-lg border border-border bg-muted/30 p-3 transition-all hover:bg-muted/50 hover:shadow-md"
+                        onClick={() => handleQuickLogin(account.email, account.password)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className={cn("rounded-lg p-2", account.color)}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">{account.name}</p>
+                              <p className="text-sm text-muted-foreground">{account.email}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Пароль: {account.password}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {account.description}
+                              </p>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm" className="shrink-0">
+                            Войти
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

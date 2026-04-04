@@ -3,8 +3,9 @@ export const API_ENDPOINTS = {
   // Auth endpoints
   auth: {
     register: '/users/register',
-    login: '/auth/login', // TODO: если будет 
-    logout: '/auth/logout', // TODO: если будет
+    login: '/auth/login',
+    logout: '/auth/logout',
+    refresh: '/auth/refresh',  // 👈 добавляем refresh endpoint
   },
   
   // User endpoints
@@ -30,7 +31,11 @@ export const API_ENDPOINTS = {
     byEmail: (email: string) => `/internal/users/by-email/${email}`,
     byId: (id: string) => `/internal/users/by-id/${id}`,
   },
+  
+  // System endpoints
+  system: {
+    health: '/health',
+  },
 } as const
 
-// Тип для endpoints (для автодополнения)
 export type ApiEndpoints = typeof API_ENDPOINTS
