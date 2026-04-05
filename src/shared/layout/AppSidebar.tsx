@@ -12,6 +12,9 @@ import {
   ChevronUp,
   Menu,
   X,
+  Shield,
+  HardHat,
+  User,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
@@ -20,7 +23,9 @@ import { Button } from '@/shared/ui/button'
 import { ScrollArea } from '@/shared/ui/scroll-area'
 import { Separator } from '@/shared/ui/separator'
 import { cn } from '@/lib/utils'
-import { useUserRole } from '@/features/users/hooks/useUserRole'
+import { Key } from 'lucide-react'
+import { useAuth } from '@/features/auth/context/AuthContexts'
+import { PERMISSIONS } from '@/features/auth/constants/permissions.constants'
 
 const ticketSubItems = [
   { to: '/', label: 'Все заявки', end: true },
@@ -29,23 +34,42 @@ const ticketSubItems = [
   { to: '/tickets/planner', label: 'Планировщик работ', end: false },
 ] as const
 
-// Подпункты для пользователей (только для админов)
+// Подпункты для пользователей с индивидуальными правами
 const userSubItems = [
-  { to: '/users/admins', label: 'Администратор', end: false },
-  { to: '/users/customers', label: 'Заказчики', end: false },
-  { to: '/users/contractors', label: 'Исполнители', end: false },
+  { 
+    to: '/users/admins', 
+    label: 'Администраторы', 
+    icon: Shield,
+    end: false,  // добавляем явно
+    permission: PERMISSIONS.USERS_READ_ADMINS  // новое право
+  },
+  { 
+    to: '/users/customers', 
+    label: 'Заказчики', 
+    icon: User,
+    end: false,  // добавляем явно
+    permission: PERMISSIONS.USERS_READ_CUSTOMERS  // новое право
+  },
+  { 
+    to: '/users/contractors', 
+    label: 'Исполнители', 
+    icon: HardHat,
+    end: false,  // добавляем явно
+    permission: PERMISSIONS.USERS_READ_CONTRACTORS  // новое право
+  },
 ] as const
 
 const mainNav = [
-  { to: '/objects', label: 'Объекты | Оборудование', icon: Factory },
-  { to: '/messages', label: 'Сообщения', icon: MessageSquare },
-  { to: '/companies', label: 'Компании', icon: Building2 },
-  { to: '/checklists', label: 'Чек-листы', icon: ClipboardList },
-  { to: '/warehouses', label: 'Склады | Материалы', icon: Package },
+  { to: '/objects', label: 'Объекты | Оборудование', icon: Factory, permission: PERMISSIONS.OBJECTS_READ },
+  { to: '/messages', label: 'Сообщения', icon: MessageSquare, permission: null },
+  { to: '/companies', label: 'Компании', icon: Building2, permission: null },
+  { to: '/checklists', label: 'Чек-листы', icon: ClipboardList, permission: null },
+  { to: '/warehouses', label: 'Склады | Материалы', icon: Package, permission: null },
+  { to: '/permissions-reference', label: 'Справочник прав', icon: Key, permission: PERMISSIONS.SETTINGS_MANAGE },
 ] as const
 
 export function AppSidebar() {
-  const { isAdmin, isCustomer, isContractor } = useUserRole()
+  const { hasPermission } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -54,12 +78,24 @@ export function AppSidebar() {
     users: false,
   })
 
+  // Проверяем права на просмотр каждого типа пользователей
+  const canViewAdmins = hasPermission(PERMISSIONS.USERS_READ_ADMINS)
+  const canViewCustomers = hasPermission(PERMISSIONS.USERS_READ_CUSTOMERS)
+  const canViewContractors = hasPermission(PERMISSIONS.USERS_READ_CONTRACTORS)
+  
+  // Раздел пользователей виден, если есть хотя бы одно право на просмотр
+  const canViewAnyUser = canViewAdmins || canViewCustomers || canViewContractors
+
+  // Фильтруем подпункты пользователей по правам
+  const visibleUserSubItems = userSubItems.filter(item => 
+    !item.permission || hasPermission(item.permission)
+  )
+
   // Определяем мобильное устройство
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768
       setIsMobile(mobile)
-      // На мобильных устройствах меню всегда свернуто (скрыто)
       if (mobile) {
         setCollapsed(true)
         setMobileMenuOpen(false)
@@ -95,7 +131,6 @@ export function AppSidebar() {
   if (isMobile && !mobileMenuOpen) {
     return (
       <>
-        {/* Плавающая кнопка открытия меню - в нижнем правом углу */}
         <Button
           variant="default"
           size="icon"
@@ -161,8 +196,6 @@ export function AppSidebar() {
                 collapsed && "mx-auto"
               )}
               onClick={toggleCollapse}
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
             >
               {collapsed ? (
                 <ChevronRight className="size-4" />
@@ -244,8 +277,8 @@ export function AppSidebar() {
               </div>
             )}
 
-            {/* Раздел Пользователи - показываем только админам */}
-            {isAdmin && (
+            {/* Раздел Пользователи - показываем только если есть хотя бы одно право */}
+            {canViewAnyUser && (
               <>
                 {(!collapsed || isMobile) && <Separator className="my-2 bg-sidebar-border" />}
                 
@@ -265,9 +298,10 @@ export function AppSidebar() {
                     )}
                   </button>
                 )}
+                
                 {(collapsed && !isMobile) && (
                   <NavLink
-                    to="/users/admins"
+                    to={visibleUserSubItems[0]?.to || '/users/admins'}
                     title="Пользователи"
                     className={({ isActive }) =>
                       cn(
@@ -281,26 +315,31 @@ export function AppSidebar() {
                     <Users className="size-5" />
                   </NavLink>
                 )}
+                
                 {(!collapsed || isMobile) && expandedSections.users && (
                   <div className="flex flex-col gap-0.5 pl-2">
-                    {userSubItems.map((item) => (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        end={item.end}
-                        onClick={isMobile ? closeMobileMenu : undefined}
-                        className={({ isActive }) =>
-                          cn(
-                            'rounded-md border-l-2 py-1.5 pr-2 pl-6 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                            isActive
-                              ? 'border-sidebar-primary bg-sidebar-accent/80 font-medium text-sidebar-accent-foreground'
-                              : 'border-transparent text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
-                          )
-                        }
-                      >
-                        {item.label}
-                      </NavLink>
-                    ))}
+                    {visibleUserSubItems.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          onClick={isMobile ? closeMobileMenu : undefined}
+                          className={({ isActive }) =>
+                            cn(
+                              'flex items-center gap-2 rounded-md border-l-2 py-1.5 pr-2 pl-6 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                              isActive
+                                ? 'border-sidebar-primary bg-sidebar-accent/80 font-medium text-sidebar-accent-foreground'
+                                : 'border-transparent text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                            )
+                          }
+                        >
+                          <Icon className="size-3.5 shrink-0" />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      )
+                    })}
                   </div>
                 )}
               </>
@@ -308,10 +347,9 @@ export function AppSidebar() {
 
             {(!collapsed || isMobile) && <Separator className="my-2 bg-sidebar-border" />}
 
-            {/* Основные пункты меню - показываем в зависимости от роли */}
+            {/* Основные пункты меню */}
             {mainNav.map((item) => {
-              // Для заказчиков и исполнителей показываем только Objects и Messages
-              if ((isCustomer || isContractor) && item.to !== '/objects' && item.to !== '/messages') {
+              if (item.permission && !hasPermission(item.permission)) {
                 return null
               }
               

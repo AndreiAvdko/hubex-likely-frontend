@@ -1,6 +1,8 @@
-// src/config/routes.config.tsx
+// src/configs/routes.config.tsx
 import { Navigate } from 'react-router-dom'
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
+import { PERMISSIONS } from '@/features/auth/constants/permissions.constants'
+import type { PermissionKey } from '@/features/auth/constants/permissions.constants'
 import { PlaceholderPage } from '@/pages/placeholder-page'
 import { TicketDetailPage } from '@/features/tickets/components/ticket-detail/TicketDetailPage'
 import { TicketsPage } from '@/features/tickets/components/TicketsPage'
@@ -12,26 +14,18 @@ import { AdminsPage } from '@/features/users/components/AdminsPage'
 import { CustomersPage } from '@/features/users/components/CustomersPage'
 import { ContractorsPage } from '@/features/users/components/ContractorsPage'
 import { LoginPage } from '@/features/auth/components/LoginPage'
+import { PermissionsReferencePage } from '@/features/permission/components/PermissionsReferencePage'
 import { Route } from 'react-router-dom'
 
-// Типы для ролей
-export type UserRole = 'admin' | 'customer' | 'contractor'
-
-// Интерфейс для конфигурации маршрута
 interface RouteConfig {
   path: string
   element: React.ReactNode
-  allowedRoles?: UserRole[]
+  permissions?: PermissionKey | PermissionKey[]  // только права
+  mode?: 'any' | 'all'
   isPublic?: boolean
 }
 
-// // Интерфейс для вложенных маршрутов
-// interface NestedRouteConfig {
-//   element: React.ReactNode
-//   children: RouteConfig[]
-// }
-
-// Публичные маршруты (без авторизации)
+// Публичные маршруты
 export const publicRoutes: RouteConfig[] = [
   {
     path: '/login',
@@ -40,82 +34,90 @@ export const publicRoutes: RouteConfig[] = [
   },
 ]
 
-// Защищенные маршруты (с авторизацией и проверкой ролей)
+// Защищенные маршруты — только проверка прав
 export const protectedRoutes: RouteConfig[] = [
-  // Админские маршруты - только для админов
+  // Пользователи — требуют соответствующие права
   {
     path: 'users/admins',
     element: <AdminsPage />,
-    allowedRoles: ['admin'],
+    permissions: PERMISSIONS.USERS_READ_ADMINS,
   },
-  
-  // Маршруты для заказчиков и исполнителей
   {
     path: 'users/customers',
     element: <CustomersPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    permissions: PERMISSIONS.USERS_READ_CUSTOMERS,
   },
   {
     path: 'users/contractors',
     element: <ContractorsPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    permissions: PERMISSIONS.USERS_READ_CONTRACTORS,
   },
   
-  // Общие маршруты для всех авторизованных
+  // Тикеты
   {
     path: '/',
     element: <TicketsPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
-  },
-  {
-    path: 'objects',
-    element: <ObjectsPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
-  },
-  {
-    path: 'objects/:id',
-    element: <ObjectDetailPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
-  },
-  {
-    path: 'tickets/schedule',
-    element: <SchedulePage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
-  },
-  {
-    path: 'tickets/marking',
-    element: <PlaceholderPage title="Маркировка" />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
-  },
-  {
-    path: 'tickets/planner',
-    element: <PlannerPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    permissions: PERMISSIONS.TICKETS_READ,
   },
   {
     path: 'tickets/:id',
     element: <TicketDetailPage />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    permissions: PERMISSIONS.TICKETS_READ,
   },
+  {
+    path: 'tickets/schedule',
+    element: <SchedulePage />,
+    permissions: PERMISSIONS.SCHEDULE_VIEW,
+  },
+  {
+    path: 'tickets/marking',
+    element: <PlaceholderPage title="Маркировка" />,
+    permissions: PERMISSIONS.TICKETS_READ,
+  },
+  {
+    path: 'tickets/planner',
+    element: <PlannerPage />,
+    permissions: PERMISSIONS.PLANNER_VIEW,
+  },
+  
+  // Объекты
+  {
+    path: 'objects',
+    element: <ObjectsPage />,
+    permissions: PERMISSIONS.OBJECTS_READ,
+  },
+  {
+    path: 'objects/:id',
+    element: <ObjectDetailPage />,
+    permissions: PERMISSIONS.OBJECTS_READ,
+  },
+  
+  // Временные маршруты (без прав — доступны всем авторизованным)
   {
     path: 'companies',
     element: <PlaceholderPage title="Компании" />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    // permissions: null,
   },
   {
     path: 'messages',
     element: <PlaceholderPage title="Сообщения" />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    // permissions: null,
   },
   {
     path: 'checklists',
     element: <PlaceholderPage title="Чек-листы" />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    // permissions: null,
   },
   {
     path: 'warehouses',
     element: <PlaceholderPage title="Склады | Материалы" />,
-    allowedRoles: ['admin', 'customer', 'contractor'],
+    // permissions: null,
+  },
+   // Справочник прав (только для админов/разработки)
+  {
+    path: 'permissions-reference',
+    element: <PermissionsReferencePage />,
+    permissions: PERMISSIONS.SETTINGS_MANAGE, // только админы с правом настройки
   },
 ]
 
@@ -133,7 +135,10 @@ export const renderProtectedRoutes = () => {
       key={route.path}
       path={route.path}
       element={
-        <ProtectedRoute allowedRoles={route.allowedRoles!}>
+        <ProtectedRoute 
+          permissions={route.permissions}
+          mode={route.mode}
+        >
           {route.element}
         </ProtectedRoute>
       }

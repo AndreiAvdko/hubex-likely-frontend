@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { LoginPage } from '@/features/auth/components/LoginPage'
 import { protectedRoutes } from '@/configs/routes.config'
 import { Navigate } from 'react-router-dom'
+import { DebugPermissions } from './features/auth/components/DebugPermissions'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      <DebugPermissions /> {/* ← Отладка прав пользователя */}
     </AuthProvider>
   )
 }

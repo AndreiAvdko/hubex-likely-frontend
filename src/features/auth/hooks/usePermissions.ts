@@ -1,28 +1,22 @@
-import { useUserRole } from '../../users/hooks/useUserRole'
+// features/auth/hooks/usePermissions.ts
+import { useAuth } from '../context/AuthContexts';
+import type { PermissionKey } from '../types/permissions.types';
 
-export function usePermissions() {
-  const { isAdmin, isCustomer, isContractor, role } = useUserRole()
-  
-  return {
-    // Управление пользователями
-    canCreateUser: isAdmin,
-    canEditUser: isAdmin,
-    canDeleteUser: isAdmin,
-    
-    // Просмотр страниц
-    canViewAdminsPage: isAdmin,
-    canViewCustomersPage: isAdmin || isCustomer || isContractor,
-    canViewContractorsPage: isAdmin || isCustomer || isContractor,
-    
-    // Действия с заявками
-    canCreateTicket: true, // все могут создавать заявки
-    canAssignTicket: isAdmin, // только админы назначают
-    canCompleteTicket: isContractor, // исполнители завершают
-    
-    // Информация о роли
-    role,
-    isAdmin,
-    isCustomer,
-    isContractor,
-  }
-}
+// Просто реэкспортируем useAuth как usePermissions для удобства
+export const usePermissions = useAuth;
+
+// Утилиты для конкретных проверок
+export const useHasPermission = (permission: PermissionKey) => {
+  const { hasPermission } = useAuth();
+  return hasPermission(permission);
+};
+
+export const useHasAnyPermission = (permissions: PermissionKey[]) => {
+  const { hasAnyPermission } = useAuth();
+  return hasAnyPermission(permissions);
+};
+
+export const useHasAllPermissions = (permissions: PermissionKey[]) => {
+  const { hasAllPermissions } = useAuth();
+  return hasAllPermissions(permissions);
+};

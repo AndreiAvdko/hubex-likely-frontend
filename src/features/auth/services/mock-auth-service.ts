@@ -1,9 +1,6 @@
+// features/auth/services/mock-auth-service.ts
+import { DEFAULT_ROLE_PERMISSIONS, type UserPermissions } from '../types/permissions.types'
 import type { UserRole } from '@/configs/routes.config'
-
-interface LoginRequest {
-  email: string
-  password: string
-}
 
 interface User {
   id: string
@@ -15,126 +12,138 @@ interface User {
 }
 
 interface LoginResponse {
-  accessToken: string
   user: User
+  token: string
 }
 
-// Тестовые учетные записи
-const TEST_USERS: Record<string, { password: string; user: User }> = {
-  'admin@screwit.ru': {
+// Тестовые пользователи
+const mockUsers = [
+  {
+    id: '1',
+    email: 'admin@screwit.ru',
     password: 'admin123',
-    user: {
-      id: '1',
-      email: 'admin@screwit.ru',
-      username: 'admin_system',
-      role: 'admin',
-      firstName: 'Администратор',
-      lastName: 'Системы',
-    },
+    username: 'admin',
+    role: 'admin' as UserRole,
+    firstName: 'Администратор',
+    lastName: 'Системы',
   },
-  'customer@screwit.ru': {
+  {
+    id: '2',
+    email: 'customer@screwit.ru',
     password: 'customer123',
-    user: {
-      id: '2',
-      email: 'customer@screwit.ru',
-      username: 'customer_user',
-      role: 'customer',
-      firstName: 'Иван',
-      lastName: 'Петров',
-    },
+    username: 'customer',
+    role: 'customer' as UserRole,
+    firstName: 'Иван',
+    lastName: 'Петров',
   },
-  'contractor@screwit.ru': {
+  {
+    id: '3',
+    email: 'contractor@screwit.ru',
     password: 'contractor123',
-    user: {
-      id: '3',
-      email: 'contractor@screwit.ru',
-      username: 'contractor_user',
-      role: 'contractor',
-      firstName: 'Сергей',
-      lastName: 'Иванов',
-    },
+    username: 'contractor',
+    role: 'contractor' as UserRole,
+    firstName: 'Сергей',
+    lastName: 'Исполнителей',
   },
+]
+
+// Получение прав по роли
+const getPermissionsByRole = (role: UserRole): UserPermissions => {
+  switch (role) {
+    case 'admin':
+      return DEFAULT_ROLE_PERMISSIONS.admin
+    case 'customer':
+      return DEFAULT_ROLE_PERMISSIONS.customer
+    case 'contractor':
+      return DEFAULT_ROLE_PERMISSIONS.contractor
+    default:
+      return {}
+  }
 }
 
-class MockAuthService {
-  /**
-   * Вход в систему (мок)
-   */
-  async login(data: LoginRequest): Promise<LoginResponse> {
-    // Имитация задержки сети
+// Хранилище токена в localStorage
+const TOKEN_KEY = 'mock_auth_token'
+const USER_KEY = 'mock_auth_user'
+
+export const mockAuthService = {
+  // Логин
+  async login({ email, password }: { email: string; password: string }): Promise<LoginResponse> {
+    // Имитируем задержку сети
     await new Promise(resolve => setTimeout(resolve, 800))
     
-    const userData = TEST_USERS[data.email]
+    const user = mockUsers.find(u => u.email === email && u.password === password)
     
-    if (!userData || userData.password !== data.password) {
+    if (!user) {
       throw new Error('Неверный email или пароль')
     }
     
-    // Генерируем моковый токен
-    const mockToken = btoa(JSON.stringify({
-      userId: userData.user.id,
-      role: userData.user.role,
-      exp: Date.now() + 24 * 60 * 60 * 1000 // 24 часа
+    // Создаем фейковый токен
+    const token = `mock_token_${user.id}_${Date.now()}`
+    
+    // Сохраняем в localStorage
+    localStorage.setItem(TOKEN_KEY, token)
+    localStorage.setItem(USER_KEY, JSON.stringify({ 
+      id: user.id, 
+      email: user.email, 
+      role: user.role,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName
     }))
     
-    // Сохраняем данные в localStorage
-    localStorage.setItem('accessToken', mockToken)
-    localStorage.setItem('userRole', userData.user.role)
-    localStorage.setItem('user', JSON.stringify(userData.user))
-    
     return {
-      accessToken: mockToken,
-      user: userData.user,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+      token,
     }
-  }
-
-  /**
-   * Выход из системы
-   */
-  async logout(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('userRole')
-    localStorage.removeItem('user')
-  }
-
-  /**
-   * Проверка авторизации
-   */
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('accessToken')
-  }
-
-  /**
-   * Получение текущего пользователя
-   */
+  },
+  
+  // Получение текущего пользователя
   getCurrentUser(): User | null {
-    const userStr = localStorage.getItem('user')
+    const userStr = localStorage.getItem(USER_KEY)
     if (!userStr) return null
+    
     try {
       return JSON.parse(userStr)
     } catch {
       return null
     }
-  }
-
-  /**
-   * Получение роли текущего пользователя
-   */
-  getCurrentUserRole(): UserRole | null {
-    const role = localStorage.getItem('userRole')
-    if (!role) return null
-    return role as UserRole
-  }
-
-  /**
-   * Сброс сессии (для тестирования)
-   */
-  clearSession(): void {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('userRole')
-    localStorage.removeItem('user')
-  }
+  },
+  
+  // Получение прав пользователя
+  async getUserPermissions(userId: string): Promise<UserPermissions> {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    // Находим пользователя по ID
+    const user = mockUsers.find(u => u.id === userId)
+    
+    if (!user) {
+      return {}
+    }
+    
+    // Возвращаем права на основе роли
+    return getPermissionsByRole(user.role)
+  },
+  
+  // Выход
+  async logout(): Promise<void> {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  },
+  
+  // Проверка аутентификации
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem(TOKEN_KEY)
+  },
+  
+  // Получение токена
+  getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY)
+  },
 }
-
-export const mockAuthService = new MockAuthService()
